@@ -33,10 +33,6 @@ This project provides a REST API that recommends Exchange-Traded Funds (ETFs) ba
 ## Installation
 
 ### 1. Clone the Repository
-```bash
-git clone https://github.com/yourusername/etf-recommendation-api.git
-cd etf-recommendation-api
-```
 
 ### 2. Install Dependencies
 ```bash
