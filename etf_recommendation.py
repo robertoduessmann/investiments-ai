@@ -2,9 +2,7 @@ from flask import Flask, request, jsonify
 import requests
 from openai import OpenAI
 
-
 # OpenAI API Configuration
-OPENAI_API_KEY = "bla"  # Replace with your OpenAI API key
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Flask App
@@ -28,30 +26,32 @@ def scrape_etf_data():
             # Check if the value contains required keys
             if isinstance(value, dict):
                 name = value.get("fundName")
-                net_assets = value.get("totalNetAssets", {}).get("d", "N/A")
+                net_assets_str = value.get("totalNetAssets", {}).get("d", "0").replace(",", "")
                 ticker = value.get("localExchangeTicker")
 
                 if name and ticker:  # Ensure the required fields are present
+                    try:
+                        net_assets = float(net_assets_str)  # Convert to a number
+                    except ValueError:
+                        net_assets = 0  # Default to 0 if conversion fails
+
                     etf_list.append({"Name": name, "Net Assets (USD)": net_assets, "Ticker": ticker})
 
-        # Print or process the list of ETFs
-        for etf in etf_list:
-            print(etf)
-        return etf_list
+        # Order by Net Assets (descending) and get the top 60
+        sorted_etf_list = sorted(etf_list, key=lambda x: x["Net Assets (USD)"], reverse=True)[:60]
+
+        return sorted_etf_list
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching the data: {e}")
         return []
 
-
 def get_chatgpt_recommendations(etfs, risk_level):
     """Fetches ETF recommendations from ChatGPT based on risk level."""
     try:
-        # print("data: " + etfs)
         # Prepare the input prompt
         etf_list = "\n".join([f"{etf['Ticker']}: {etf['Name']} (Net Assets: ${etf['Net Assets (USD)']})" for etf in etfs])
-        print("data: " + etf_list)
-    
+
         prompt = (
             f"Based on the following list of ETFs:\n\n{etf_list}\n\n"
             f"Recommend three ETFs suitable for a {risk_level} risk level, ordered by net assets. "
@@ -59,14 +59,14 @@ def get_chatgpt_recommendations(etfs, risk_level):
         )
 
         # Call ChatGPT API
-        response = client.chat.completionss.create(model="gpt-4",  # Use gpt-4 for better performance
+        response = client.chat.completions.create(model="gpt-4",  # Specify the model
         messages=[{"role": "user", "content": prompt}],
         max_tokens=500)
 
         # Extract and return recommendations
         recommendations = response.choices[0].message.content
-
         return recommendations
+
     except Exception as e:
         return f"Error fetching insights: {e}"
 
@@ -76,10 +76,10 @@ def api_recommend_etfs():
     risk_level = request.args.get('risk_level', '').lower()
     if risk_level not in ["high", "medium", "low"]:
         return jsonify({"error": "Invalid risk level. Choose from 'high', 'medium', or 'low'."}), 400
-    
+
     # Scrape data
     etf_data = scrape_etf_data()
-    
+
     # Prepare ETF list for ChatGPT
     recommended_etfs = get_chatgpt_recommendations(etf_data, risk_level)
     return jsonify({"recommendations": recommended_etfs})
