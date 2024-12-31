@@ -1,18 +1,6 @@
 from flask import Flask, request, jsonify
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import requests
-import openai
 from openai import OpenAI
-from selenium.common.exceptions import TimeoutException
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 
 
 # OpenAI API Configuration
@@ -22,51 +10,48 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 # Flask App
 app = Flask(__name__)
 
-# Selenium WebDriver Setup
-service = Service("/usr/local/bin/chromedriver")  # Adjust path to your chromedriver
-options = webdriver.ChromeOptions()
-options.add_argument("--headless")  # Run in headless mode
-
 # URL of iShares ETF page
-ISHARES_URL = "https://www.ishares.com/us/products/etf-investments#/?productView=etf&pageNumber=1&sortColumn=totalNetAssets&sortDirection=desc&dataView=keyFacts&showAll=true"
+ISHARES_URL = "https://www.ishares.com/us/product-screener/product-screener-v3.1.jsn?type=excel&siteEntryPassthrough=true&dcrPath=/templatedata/config/product-screener-v3/data/en/us-ishares/ishares-product-screener-excel-config&disclosureContentDcrPath=/templatedata/content/article/data/en/us-ishares/DEFAULT/product-screener-all-disclaimer"
 
 def scrape_etf_data():
-    """Scrapes ETF data from iShares website."""
-    options = webdriver.ChromeOptions()
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    service = webdriver.chrome.service.Service("/usr/local/bin/chromedriver")
-    driver = webdriver.Chrome(service=service, options=options)
-
-    etf_data = []
     try:
-        driver.get(ISHARES_URL)
-        WebDriverWait(driver, 15).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, ".mat-table cdk-table ishares-theme grid-margin-as-padding"))
-        )
-        rows = driver.find_elements(By.CSS_SELECTOR, ".mat-table cdk-table ishares-theme grid-margin-as-padding")
-        
-        for row in rows:
-            cols = row.find_elements(By.TAG_NAME, "td")
-            if len(cols) > 0:
-                ticker = cols[0].text.strip()
-                name = cols[1].text.strip()
-                net_assets = cols[4].text.strip()  # Adjust index if necessary
-                etf_data.append({
-                    "Ticker": ticker,
-                    "Name": name,
-                    "Net Assets (USD)": net_assets.replace(",", "").replace("$", "")
-                })
-    except TimeoutException:
-        print("Timeout while waiting for the table to load.")
-    finally:
-        driver.quit()
-    return etf_data
+        # Fetch the file
+        response = requests.get(ISHARES_URL)
+        response.raise_for_status()  # Raise an error for bad HTTP status codes
+
+        # Parse JSON data
+        data = response.json()
+
+        # Extract relevant details
+        etf_list = []
+        for key, value in data.items():
+            # Check if the value contains required keys
+            if isinstance(value, dict):
+                name = value.get("fundName")
+                net_assets = value.get("totalNetAssets", {}).get("d", "N/A")
+                ticker = value.get("localExchangeTicker")
+
+                if name and ticker:  # Ensure the required fields are present
+                    etf_list.append({"Name": name, "Net Assets (USD)": net_assets, "Ticker": ticker})
+
+        # Print or process the list of ETFs
+        for etf in etf_list:
+            print(etf)
+        return etf_list
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching the data: {e}")
+        return []
+
 
 def get_chatgpt_recommendations(etfs, risk_level):
     """Fetches ETF recommendations from ChatGPT based on risk level."""
     try:
+        # print("data: " + etfs)
         # Prepare the input prompt
         etf_list = "\n".join([f"{etf['Ticker']}: {etf['Name']} (Net Assets: ${etf['Net Assets (USD)']})" for etf in etfs])
+        print("data: " + etf_list)
+    
         prompt = (
             f"Based on the following list of ETFs:\n\n{etf_list}\n\n"
             f"Recommend three ETFs suitable for a {risk_level} risk level, ordered by net assets. "
