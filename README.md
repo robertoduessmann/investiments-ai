@@ -1,60 +1,95 @@
 # Investiments AI
 
-This project is a Python-based web scraper designed to extract ETF data from the iShares website. It uses Selenium for dynamic content rendering and includes an API integration to fetch insights for the scraped ETFs.
+This project provides a REST API that recommends Exchange-Traded Funds (ETFs) based on the user's specified risk level (`high`, `medium`, or `low`). It uses **Selenium** for web scraping to dynamically extract ETF data from the iShares website and integrates the **ChatGPT API** to enhance recommendations with intelligent insights.
 
-```
+---
 
-## Requirements
-- Python 3.9 or later
-- Google Chrome and ChromeDriver
-- Docker (for containerized deployment)
+## Features
 
-## Setup and Usage
+- **Dynamic Web Scraping**: Extracts live ETF data (ticker, name, net assets) from the iShares website.
+- **Risk-Based Recommendations**: Provides tailored ETF suggestions for different risk levels.
+- **ChatGPT Integration**: Uses OpenAI's ChatGPT API to generate insightful ETF recommendations.
+- **REST API**: Accessible API endpoint for fetching recommendations.
 
-### 1. Install Dependencies
-Install the required Python libraries:
+---
+
+## Technologies Used
+
+- **Python**: Core programming language.
+- **Flask**: REST API framework.
+- **Selenium**: Web scraping tool for dynamic content.
+- **OpenAI API**: Provides intelligent insights and recommendations.
+- **Chromedriver**: Required for Selenium to interact with Chrome.
+
+---
+
+## Prerequisites
+
+1. **Python**: Version 3.7 or later.
+2. **Google Chrome**: Installed and updated.
+3. **Chromedriver**: Matching version of Chromedriver for your Chrome browser.
+4. **OpenAI API Key**: Obtain your key from the [OpenAI API](https://platform.openai.com/).
+
+---
+
+## Installation
+
+### 1. Clone the Repository
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/yourusername/etf-recommendation-api.git
+cd etf-recommendation-api
 ```
 
-### 2. Run the Scraper
-Run the scraper directly with Python:
+### 2. Install Dependencies
 ```bash
-python scraper.py
+pip install flask selenium openai
 ```
 
-The output will be saved as `ishares_etfs_with_insights.csv` in the project directory.
+### 3. Set Up Chromedriver
+1. Download Chromedriver from [here](https://chromedriver.chromium.org/downloads).
+2. Place it in a directory (e.g., `/usr/local/bin` or `C:\chromedriver\`).
+3. Ensure the path in the code matches the location of your Chromedriver.
 
-### 3. Run with Docker
-Build and run the scraper in a Docker container:
-
-#### Build the Docker Image
+### 4. Set Up OpenAI API Key
+Replace `your_openai_api_key_here` in the script with your OpenAI API key:
+```python
+openai.api_key = "your_openai_api_key_here"
+```
+Alternatively, set the key as an environment variable:
 ```bash
-docker build -t scraper-image .
+export OPENAI_API_KEY="your_openai_api_key_here"
 ```
 
-#### Run the Container
+---
+
+## Usage
+
+### Start the API
+Run the Flask app:
 ```bash
-docker run --rm -v $(pwd):/app scraper-image
+python etf_recommendation.py
+```
+The server will start at:
+```
+http://127.0.0.1:5000/
 ```
 
-### 4. Configure the API Integration
-To fetch additional insights for ETFs:
-1. Replace `your_api_key_here` in `scraper.py` with your API key.
-2. Update the `API_ENDPOINT` variable with the appropriate endpoint.
+### API Endpoint
 
-## Output
-The scraped data is saved to a CSV file with the following columns:
-- **Ticker**: The ETF ticker symbol.
-- **Name**: The name of the ETF.
-- **Net Assets (USD)**: The total net assets under management.
-- **12m Yield Return (%)**: The 12-month trailing yield.
-- **Insights**: Additional insights fetched from the API.
+#### **GET /recommend_etfs**
+Fetch ETF recommendations based on risk level.
 
-## Notes
-- Ensure ChromeDriver is installed and matches your Chrome version.
-- Comply with the website's Terms of Service before scraping.
-- Handle API rate limits and errors gracefully.
+##### **Query Parameters**
+- **`risk_level`** (required): Specifies the risk level (`high`, `medium`, or `low`).
 
-## License
-This project is open-source and free to use. Ensure you comply with all relevant legal and ethical guidelines when using this scraper.
+##### **Example Request**
+```bash
+curl "http://127.0.0.1:5000/recommend_etfs?risk_level=medium"
+```
+
+##### **Example Response**
+```json
+{
+    "recommendations": "1. IVV: iShares Core S&P 500 ETF (Net Assets: $35000000000) - Suitable for medium risk due to large-cap stability.\n\n2. IEMG: iShares Core MSCI Emerging Markets ETF (Net Assets: $27000000000) - Offers exposure to high-growth emerging markets, which are inherently risky.\n\n3. IWM: iShares Russell 2000 ETF (Net Assets: $15000000000) - Focuses on small-cap stocks, which tend to be more volatile."
+}
+```
