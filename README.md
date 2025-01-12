@@ -36,7 +36,7 @@ This project provides a REST API that recommends Exchange-Traded Funds (ETFs) ba
 
 ### 2. Install Dependencies
 ```bash
-pip install flask openai requests
+pip install -r requirements.txt
 ```
 
 ---
@@ -69,6 +69,19 @@ curl "http://127.0.0.1:5000/recommend_etfs?risk_level=medium"
 ##### **Example Response**
 ```json
 {
-    "recommendations": "1. IVV: iShares Core S&P 500 ETF - Suitable for medium risk due to large-cap stability.\n\n2. EEM: iShares MSCI Emerging Markets ETF - Provides growth potential with manageable risk.\n\n3. IWM: iShares Russell 2000 ETF - Focuses on small-cap stocks, which tend to be riskier but can deliver substantial returns."
+"recommendations": [
+    {
+    "name": "IVV: iShares Core S&P 500 ETF",
+    "allocation": "40%"
+    },
+    {
+    "name": "IWF: iShares Russell 1000 Growth ETF",
+    "allocation": "30%"
+    },
+    {
+    "name": "IEMG: iShares Core MSCI Emerging Markets ETF",
+    "allocation": "30%"
+    }
+]
 }
 ```

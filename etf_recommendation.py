@@ -1,9 +1,12 @@
 from flask import Flask, request, jsonify
 import requests
 from openai import OpenAI
+import os
+from dotenv import load_dotenv
 
 # OpenAI API Configuration
-client = OpenAI(api_key=OPENAI_API_KEY)
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Flask App
 app = Flask(__name__)
@@ -55,7 +58,7 @@ def get_chatgpt_recommendations(etfs, risk_level):
         prompt = (
             f"Based on the following list of ETFs:\n\n{etf_list}\n\n"
             f"Recommend three ETFs suitable for a {risk_level} risk level, ordered by net assets. "
-            "Provide a brief explanation for each recommendation."
+            f"Response must be a json simple list with two fields per etf: name and % allocation"
         )
 
         # Call ChatGPT API
